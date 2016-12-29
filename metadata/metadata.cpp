@@ -83,9 +83,11 @@ track* metadata(const char* path)
     // Copy artwork (if available) into the metadata
     const auto art_frames = frames["APIC"];
 
+    typedef TagLib::ID3v2::AttachedPictureFrame Artwork;
+
     if (!art_frames.isEmpty())
     {
-        const auto frame = (TagLib::ID3v2::AttachedPictureFrame*) art_frames.front();
+        const auto frame = (Artwork*) art_frames.front();
         const auto artwork = frame->picture();
 
         const auto art_data = new char[artwork.size()];
