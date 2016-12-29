@@ -1,6 +1,5 @@
 #include "metadata.hpp"
 
-#include <taglib/fileref.h>
 #include <taglib/id3v2tag.h>
 #include <taglib/mpegfile.h>
 #include <taglib/aifffile.h>
