@@ -9,6 +9,9 @@
 
 typedef std::unique_ptr<TagLib::File> FileHandle;
 
+/**
+ * Get the opne TagLib::File and TagLib::ID3v2::Tag objects given a file path.
+ */
 TagLib::ID3v2::Tag* get_tags(const char* path, FileHandle &file_ref)
 {
     const auto path_str = std::string(path);
@@ -40,6 +43,9 @@ TagLib::ID3v2::Tag* get_tags(const char* path, FileHandle &file_ref)
     return 0;
 }
 
+/**
+ * Copies the string value of the given frame list into a cstring.
+ */
 const char* frame_str(const TagLib::ID3v2::FrameList &frame)
 {
     if (frame.isEmpty()) return "";
