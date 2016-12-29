@@ -5,16 +5,17 @@
 #include <taglib/aifffile.h>
 #include <taglib/attachedpictureframe.h>
 #include <iostream>
+#include <memory>
 
-typedef std::pair<TagLib::File*, TagLib::ID3v2::Tag*> fileTags;
+typedef std::unique_ptr<TagLib::File> FileHandle;
 
-fileTags get_tags(const char* path)
+TagLib::ID3v2::Tag* get_tags(const char* path, FileHandle &file_ref)
 {
     const auto path_str = std::string(path);
     const int ext_pos = path_str.rfind(".");
 
     // Bad extension, can't determine what file loader to use
-    if (ext_pos == -1) return {0, 0};
+    if (ext_pos == -1) return 0;
 
     const auto ext = path_str.substr(ext_pos + 1);
 
@@ -22,17 +23,21 @@ fileTags get_tags(const char* path)
     if (ext == "aif" || ext == "aiff")
     {
         const auto file = new TagLib::RIFF::AIFF::File(path);
-        return fileTags{file, file->tag()};
+        file_ref.reset(file);
+
+        return file->tag();
     }
 
     // MP3 file, access the ID3 tags using MPEG::File::ID3v2Tag
     if (ext == "mp3")
     {
         const auto file = new TagLib::MPEG::File(path);
-        return fileTags{file, file->ID3v2Tag()};
+        file_ref.reset(file);
+
+        return file->ID3v2Tag();
     }
 
-    return {0, 0};
+    return 0;
 }
 
 const char* frame_str(const TagLib::ID3v2::FrameList &frame)
@@ -56,10 +61,8 @@ const char* frame_str(const TagLib::ID3v2::FrameList &frame)
  */
 track* metadata(const char* path)
 {
-    const auto file_tags = get_tags(path);
-
-    const auto file = file_tags.first;
-    const auto tags = file_tags.second;
+    auto file = FileHandle(nullptr);
+    const auto tags = get_tags(path, file);
 
     if (!file || !tags) return 0;
 
@@ -97,6 +100,5 @@ track* metadata(const char* path)
         metadata->art_size = artwork.size();
     }
 
-    delete file;
     return metadata;
 }
