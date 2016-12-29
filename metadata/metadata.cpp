@@ -15,7 +15,7 @@ typedef std::unique_ptr<TagLib::File> FileHandle;
 TagLib::ID3v2::Tag* get_tags(const char* path, FileHandle &file_ref)
 {
     const auto path_str = std::string(path);
-    const int ext_pos = path_str.rfind(".");
+    const auto ext_pos = path_str.rfind(".");
 
     // Bad extension, can't determine what file loader to use
     if (ext_pos == -1) return 0;
