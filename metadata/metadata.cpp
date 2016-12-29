@@ -36,6 +36,21 @@ fileTags get_tags(const char* path)
     return {0, 0};
 }
 
+const char* frame_str(TagLib::ID3v2::FrameList frame)
+{
+    if (frame.isEmpty()) return "";
+
+    // Get the frame value as a utf8 std::string
+    auto str = frame.front()->toString().to8Bit(true);
+
+    // Copy the value into memory
+    char* value = new char[str.size() + 1];
+    std::copy(str.begin(), str.end(), value);
+    value[str.size()] = '\0';
+
+    return value;
+}
+
 /**
  * Retrieve tag information given a file path. Currently only MP3 and AIFF
  * files are supported.
@@ -52,38 +67,19 @@ track* metadata(const char* path)
     auto frames = tags->frameListMap();
     auto metadata = new track();
 
-    std::map<std::string, TagLib::ID3v2::FrameList> track_frames = {
-        {"artist",       frames["TPE1"]},
-        {"title",        frames["TIT2"]},
-        {"album",        frames["TALB"]},
-        {"remixer",      frames["TPE4"]},
-        {"publisher",    frames["TPUB"]},
-        {"comment",      frames["COMM"]},
-        {"key",          frames["TKEY"]},
-        {"bpm",          frames["TBPM"]},
-        {"year",         frames["TDRC"]},
-        {"track_number", frames["TRCK"]},
-        {"disc_number",  frames["TPOS"]},
-        {"genre",        frames["TCON"]},
-    };
-
-    std::map<std::string, char*> strings;
-
-    // Copy tag values into the strings map
-    for (auto const &kv : track_frames)
-    {
-        if (kv.second.isEmpty()) continue;
-
-        // Get the frame value as a utf8 std::string
-        auto str = kv.second.front()->toString().to8Bit(true);
-
-        // Copy the value into memory
-        char* str_copy = new char[str.size() + 1];
-        std::copy(str.begin(), str.end(), str_copy);
-        str_copy[str.size()] = '\0';
-
-        strings.emplace(kv.first, str_copy);
-    }
+    // Construct the rest of the track struct
+    metadata->artist       = frame_str(frames["TPE1"]);
+    metadata->title        = frame_str(frames["TIT2"]);
+    metadata->album        = frame_str(frames["TALB"]);
+    metadata->remixer      = frame_str(frames["TPE4"]);
+    metadata->publisher    = frame_str(frames["TPUB"]);
+    metadata->comment      = frame_str(frames["COMM"]);
+    metadata->key          = frame_str(frames["TKEY"]);
+    metadata->bpm          = frame_str(frames["TBPM"]);
+    metadata->year         = frame_str(frames["TDRC"]);
+    metadata->track_number = frame_str(frames["TRCK"]);
+    metadata->disc_number  = frame_str(frames["TPOS"]);
+    metadata->genre        = frame_str(frames["TCON"]);
 
     // Copy artwork (if available) into the metadata
     auto art_frames = frames["APIC"];
@@ -99,20 +95,6 @@ track* metadata(const char* path)
         metadata->artwork = art_data;
         metadata->art_size = artwork.size();
     }
-
-    // Construct the rest of the track struct
-    metadata->artist       = strings["artist"];
-    metadata->title        = strings["title"];
-    metadata->album        = strings["album"];
-    metadata->remixer      = strings["remixer"];
-    metadata->publisher    = strings["publisher"];
-    metadata->comment      = strings["comment"];
-    metadata->key          = strings["key"];
-    metadata->bpm          = strings["bpm"];
-    metadata->year         = strings["year"];
-    metadata->track_number = strings["track_number"];
-    metadata->disc_number  = strings["disc_number"];
-    metadata->genre        = strings["genre"];
 
     delete file;
     return metadata;
