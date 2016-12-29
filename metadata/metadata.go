@@ -8,6 +8,7 @@ import (
 	"unsafe"
 )
 
+// Track contains the tracks metadata.
 type Track struct {
 	Artist    string `json:"artist"`
 	Title     string `json:"title"`
@@ -24,12 +25,12 @@ type Track struct {
 	Artwork   []byte `json:"-"`
 }
 
-// ForTrack retrieves track metadata for a given file.
+// ForTrack retrieves track metadata given file path.
 func ForTrack(path string) (*Track, error) {
 	track := C.metadata(C.CString(path))
 
 	if track == nil {
-		return nil, fmt.Errorf("Unable to read metadat for file %s", path)
+		return nil, fmt.Errorf("Failed to read metadata for file %s", path)
 	}
 
 	metadata := Track{
