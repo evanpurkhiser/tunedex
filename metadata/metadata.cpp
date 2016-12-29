@@ -14,8 +14,8 @@ fileTags get_tags(const char* path)
     const auto path_str = std::string(path);
     const int ext_pos = path_str.rfind(".");
 
-    if (ext_pos == -1)
-        return {0, 0};
+    // Bad extension, can't determine what file loader to use
+    if (ext_pos == -1) return {0, 0};
 
     auto ext = path_str.substr(ext_pos + 1);
 
@@ -69,6 +69,7 @@ track* metadata(const char* path)
 
     std::map<std::string, char*> strings;
 
+    // Copy tag values into the strings map
     for (auto const &kv : track_frames)
     {
         if (kv.second.isEmpty()) continue;
@@ -84,6 +85,7 @@ track* metadata(const char* path)
         strings.emplace(kv.first, str_copy);
     }
 
+    // Copy artwork (if available) into the metadata
     auto art_frames = frames["APIC"];
 
     if (!art_frames.isEmpty())
@@ -98,6 +100,7 @@ track* metadata(const char* path)
         metadata->art_size = artwork.size();
     }
 
+    // Construct the rest of the track struct
     metadata->artist       = strings["artist"];
     metadata->title        = strings["title"];
     metadata->album        = strings["album"];
