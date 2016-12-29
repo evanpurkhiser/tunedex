@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-typedef struct {
+struct track {
     const char* artist;
     const char* title;
     const char* album;
@@ -20,7 +20,9 @@ typedef struct {
     const char* genre;
     const char* artwork;
     int         art_size;
-} track;
+};
+
+typedef struct track track;
 
 track* metadata(const char* path);
 
