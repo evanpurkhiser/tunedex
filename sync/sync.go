@@ -183,6 +183,44 @@ func (i *MetadataIndexer) trackMoved(track *indexedTrack) error {
 	return err
 }
 
+func (i *MetadataIndexer) addOrUpdateTrack(track *indexedTrack) error {
+	tc := i.TrackCollection
+
+	countByHash, err := tc.Find("file_hash =", track.FileHash).Count()
+	if err != nil {
+		return err
+	}
+
+	countByPath, err := tc.Find("file_path =", track.FilePath).Count()
+	if err != nil {
+		return err
+	}
+
+	// 1. File hash and track path exist. Track has not moved or been modified.
+	if countByHash > 0 && countByPath > 0 {
+		return nil
+	}
+
+	// 2. If the hash does not exist but a track with that file path already
+	// exists, it must have been modified since the last indexing, run an
+	// update on this track.
+	if countByHash == 0 && countByPath > 0 {
+		return i.trackModified(track)
+	}
+
+	// 3. The file hash exists, the track path does not exist. The file must
+	//    have been moved. Reindex as a moved track.
+	if countByHash > 0 && countByPath == 0 {
+		return i.trackMoved(track)
+	}
+
+	// 4. Neither the file hash nor the file path have been indexed. This is a
+	//    new track. NOTE: It is also possible that the track was moved and
+	//    modified since the last indexing, in this case there is no way to
+	//    tell this occurred, the dangling track will have to be cleaned up.
+	return i.trackAdded(track)
+}
+
 func (i *MetadataIndexer) WatchCollection() error {
 	events := make(chan notify.EventInfo, 1)
 
@@ -230,7 +268,12 @@ func (i *MetadataIndexer) WatchCollection() error {
 	return nil
 }
 
-// IndexAll
+// IndexAll re-indexes all tracks.
+//
+// This method will skip indexing of tracks who's file path and file hash have
+// not changed since the last indexing. It is important to note however, that
+// tracks that were moved and modified between indexing will be added new, and
+// dangling tracks will be left to be cleaned up.
 func (i *MetadataIndexer) IndexAll() error {
 	collection, err := i.getAllFiles()
 	if err != nil {
@@ -244,7 +287,7 @@ func (i *MetadataIndexer) IndexAll() error {
 			continue
 		}
 
-		err = i.trackAdded(track)
+		err = i.addOrUpdateTrack(track)
 		if err != nil {
 			log.Printf("Failed to index track: %q", err)
 			continue
