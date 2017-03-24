@@ -114,6 +114,10 @@ func (i *MetadataIndexer) buildTrack(path string) (*indexedTrack, error) {
 	trackSum := hash.Sum(nil)
 	artworkSum := md5.Sum(metadata.Artwork)
 
+	if len(metadata.Artwork) == 0 {
+		artworkSum = [16]byte{}
+	}
+
 	year, _ := strconv.Atoi(metadata.Year)
 
 	trackData := data.Track{
