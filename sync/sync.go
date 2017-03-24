@@ -190,7 +190,7 @@ func (i *MetadataIndexer) WatchCollection() error {
 	// from losing metadata in an accidental delete.
 	watchEvents := []notify.Event{
 		notify.InCreate,
-		notify.InCloseWrite,
+		notify.InModify,
 		notify.InMovedTo,
 	}
 
@@ -201,10 +201,10 @@ func (i *MetadataIndexer) WatchCollection() error {
 		return err
 	}
 
-	handlers := map[notify.Event]func(*data.Track) error{
-		notify.InCreate:     i.trackAdded,
-		notify.InMovedTo:    i.trackMoved,
-		notify.InCloseWrite: i.trackModified,
+	handlers := map[notify.Event]func(*indexedTrack) error{
+		notify.InCreate:  i.trackAdded,
+		notify.InMovedTo: i.trackMoved,
+		notify.InModify:  i.trackModified,
 	}
 
 	for eventInfo := range events {
