@@ -46,7 +46,7 @@ func (i *MetadataIndexer) isValidFiletype(path string) bool {
 	}
 
 	for _, extension := range types {
-		if filepath.Ext(path) == "."+extension {
+		if filepath.Ext(path)[1:] == extension {
 			return true
 		}
 	}
