@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/rjeczalik/notify"
 	"upper.io/db.v3"
@@ -19,9 +18,22 @@ import (
 
 var defaultTrackFiletypes = []string{"aif", "mp3"}
 
+type indexedTrack struct {
+	data.Track
+	artwork  []byte
+	realPath string
+}
+
+// A MetadataProcessor is an interface that defines a module that can be added
+// to the MetadataIndexer to perform additional processing when adding,
+// removing, or changing a track in the database.
+type MetadataProcessor interface {
+	ProcessTrack(*indexedTrack) error
+}
+
 // MetadataIndexer is a service object that handles watching a directory
-// containing a collection of music for new, removed, and changed tracks and
-// will index them into the provided database collection.
+// containing a collection of music for new and changed tracks and will index
+// them into the provided database collection.
 type MetadataIndexer struct {
 	// CollectionPath specifies the location of the music collection on disk to
 	// keep in sync with the database.
@@ -34,6 +46,10 @@ type MetadataIndexer struct {
 	// TrackFiletypes specifies the types of files supported in the collection.
 	// This defaults to aif and mp3.
 	TrackFiletypes []string
+
+	// Processors is a list of MetadataProcessors that will be executed when
+	// indexing a track.
+	Processors []MetadataProcessor
 }
 
 // isValidFiletype checks that the provided path is part of the valid track
@@ -78,7 +94,7 @@ func (i *MetadataIndexer) getAllFiles() ([]string, error) {
 }
 
 // buildTrack constructs the Track object given a path to the track.
-func (i *MetadataIndexer) buildTrack(path string) (*data.Track, error) {
+func (i *MetadataIndexer) buildTrack(path string) (*indexedTrack, error) {
 	metadata, err := metadata.ForTrack(path)
 	if err != nil {
 		return nil, err
@@ -100,8 +116,8 @@ func (i *MetadataIndexer) buildTrack(path string) (*data.Track, error) {
 
 	year, _ := strconv.Atoi(metadata.Year)
 
-	track := data.Track{
-		FilePath:    strings.TrimPrefix(path, i.CollectionPath),
+	trackData := data.Track{
+		FilePath:    path,
 		FileHash:    fmt.Sprintf("%x", trackSum),
 		ArtworkHash: fmt.Sprintf("%x", artworkSum),
 		Artist:      metadata.Artist,
@@ -117,10 +133,16 @@ func (i *MetadataIndexer) buildTrack(path string) (*data.Track, error) {
 		Year:        year,
 	}
 
+	track := indexedTrack{
+		Track:    trackData,
+		artwork:  metadata.Artwork,
+		realPath: path,
+	}
+
 	return &track, nil
 }
 
-func (i *MetadataIndexer) trackAdded(track *data.Track) error {
+func (i *MetadataIndexer) trackAdded(track *indexedTrack) error {
 	count, err := i.TrackCollection.Find("file_hash =", track.FileHash).Count()
 	if err != nil {
 		return err
@@ -134,16 +156,24 @@ func (i *MetadataIndexer) trackAdded(track *data.Track) error {
 		return err
 	}
 
+	for _, processor := range i.Processors {
+		processor.ProcessTrack(track)
+	}
+
 	return nil
 }
 
-func (i *MetadataIndexer) trackModified(track *data.Track) error {
+func (i *MetadataIndexer) trackModified(track *indexedTrack) error {
 	err := i.TrackCollection.Find("file_path =", track.FilePath).Update(track)
+
+	for _, processor := range i.Processors {
+		processor.ProcessTrack(track)
+	}
 
 	return err
 }
 
-func (i *MetadataIndexer) trackMoved(track *data.Track) error {
+func (i *MetadataIndexer) trackMoved(track *indexedTrack) error {
 	err := i.TrackCollection.Find("file_hash =", track.FileHash).Update(track)
 
 	return err
