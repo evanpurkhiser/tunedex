@@ -210,8 +210,6 @@ func (i *MetadataIndexer) WatchCollection() error {
 			continue
 		}
 
-		fmt.Println(eventInfo)
-
 		track, err := i.buildTrack(path)
 		if err != nil {
 			log.Printf("Failed to construct track to index: %q", err)
