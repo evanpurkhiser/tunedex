@@ -1,7 +1,7 @@
 CREATE TABLE "tracks" (
 	file_hash    CHAR(32) UNIQUE,
 	artwork_hash CHAR(32) NULL,
-	file_path    VARCHAR(255),
+	file_path    VARCHAR(255) UNIQUE,
 	artist       VARCHAR(255),
 	title        VARCHAR(255),
 	remixer      VARCHAR(255),
