@@ -1,4 +1,4 @@
-package main
+package data
 
 type Track struct {
 	ID          int64   `db:"rowid,omitempty"`

@@ -6,6 +6,8 @@ import (
 	"regexp"
 
 	"upper.io/db.v3"
+
+	"go.evanpurkhiser.com/tunedex/data"
 )
 
 // Regex to split the artists names in the artist column
@@ -30,7 +32,7 @@ type FieldsService struct {
 }
 
 func (s *FieldsService) RebuildFieldCache() error {
-	var tracks []Track
+	var tracks []data.Track
 
 	if err := s.TrackCollection.Find().All(&tracks); err != nil {
 		return err
@@ -91,8 +93,8 @@ func (s *FieldsService) RebuildFieldCache() error {
 }
 
 // constructCachedFields extracts the simple fields from
-func constructCachedFields(tracks []Track) map[string][]string {
-
+func constructCachedFields(tracks []data.Track) map[string][]string {
+	return nil
 }
 
 // splitArtists accepts a string of artist that may contain multiple artists

@@ -1,4 +1,4 @@
-package main
+package sync
 
 import (
 	"crypto/md5"
@@ -13,6 +13,7 @@ import (
 	"github.com/rjeczalik/notify"
 	"upper.io/db.v3"
 
+	"go.evanpurkhiser.com/tunedex/data"
 	"go.evanpurkhiser.com/tunedex/metadata"
 )
 
@@ -71,13 +72,13 @@ func (i *MetadataIndexer) getAllFiles() ([]string, error) {
 		return nil
 	}
 
-	err := filepath.Walk(CollectionPath, walker)
+	err := filepath.Walk(i.CollectionPath, walker)
 
 	return paths, err
 }
 
 // buildTrack constructs the Track object given a path to the track.
-func (i *MetadataIndexer) buildTrack(path string) (*Track, error) {
+func (i *MetadataIndexer) buildTrack(path string) (*data.Track, error) {
 	metadata, err := metadata.ForTrack(path)
 	if err != nil {
 		return nil, err
@@ -99,7 +100,7 @@ func (i *MetadataIndexer) buildTrack(path string) (*Track, error) {
 
 	year, _ := strconv.Atoi(metadata.Year)
 
-	track := Track{
+	track := data.Track{
 		FilePath:    strings.TrimPrefix(path, i.CollectionPath),
 		FileHash:    fmt.Sprintf("%x", trackSum),
 		ArtworkHash: fmt.Sprintf("%x", artworkSum),
@@ -119,7 +120,7 @@ func (i *MetadataIndexer) buildTrack(path string) (*Track, error) {
 	return &track, nil
 }
 
-func (i *MetadataIndexer) trackAdded(track *Track) error {
+func (i *MetadataIndexer) trackAdded(track *data.Track) error {
 	count, err := i.TrackCollection.Find("file_hash =", track.FileHash).Count()
 	if err != nil {
 		return err
@@ -136,13 +137,13 @@ func (i *MetadataIndexer) trackAdded(track *Track) error {
 	return nil
 }
 
-func (i *MetadataIndexer) trackModified(track *Track) error {
+func (i *MetadataIndexer) trackModified(track *data.Track) error {
 	err := i.TrackCollection.Find("file_path =", track.FilePath).Update(track)
 
 	return err
 }
 
-func (i *MetadataIndexer) trackMoved(track *Track) error {
+func (i *MetadataIndexer) trackMoved(track *data.Track) error {
 	err := i.TrackCollection.Find("file_hash =", track.FileHash).Update(track)
 
 	return err
@@ -166,7 +167,7 @@ func (i *MetadataIndexer) WatchCollection() error {
 		return err
 	}
 
-	handlers := map[notify.Event]func(*Track) error{
+	handlers := map[notify.Event]func(*data.Track) error{
 		notify.InCreate:     i.trackAdded,
 		notify.InMovedTo:    i.trackMoved,
 		notify.InCloseWrite: i.trackModified,
